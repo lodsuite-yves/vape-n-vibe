@@ -23,8 +23,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Compile whisper.cpp binary
-        run: make -j$(sysctl -n hw.logicalcpu) main
+      - name: Compile whisper.cpp binaries
+        run: make -j$(sysctl -n hw.logicalcpu) main server
         working-directory: node_modules/whisper-node/lib/whisper.cpp
 
       - name: Import code signing certificate
@@ -80,15 +80,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Compile whisper.cpp binary
+      - name: Compile whisper.cpp binaries
         shell: bash
         run: |
           cd node_modules/whisper-node/lib/whisper.cpp
           cmake -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release --target main
+          cmake --build build --config Release --target server
           cp build/bin/Release/main.exe . 2>/dev/null || cp build/bin/main.exe . 2>/dev/null || true
+          cp build/bin/Release/server.exe . 2>/dev/null || cp build/bin/server.exe . 2>/dev/null || true
           cp build/bin/Release/whisper.dll . 2>/dev/null || cp build/bin/whisper.dll . 2>/dev/null || true
-          ls -la main.exe whisper.dll
+          ls -la main.exe server.exe whisper.dll
 
       - name: Build Windows NSIS installer
         run: npx electron-builder --win --x64 --publish always
