@@ -7,7 +7,10 @@ let serverProcess = null;
 let serverPort = null;
 let ready = false;
 let restartCount = 0;
+let restartCountResetTimer = null;
 const MAX_RESTARTS = 3;
+/** After this many ms without a failure, reset the restart counter */
+const RESTART_COUNT_DECAY_MS = 60000;
 
 /**
  * Find a free TCP port by briefly binding to port 0.
@@ -137,6 +140,8 @@ async function startServer(lang) {
 
     ready = true;
     restartCount = 0;
+    clearTimeout(restartCountResetTimer);
+    restartCountResetTimer = null;
     console.log(`[whisper-server] Ready on port ${port}`);
   } catch (err) {
     // Clean up on failure
@@ -183,8 +188,16 @@ async function ensureServer(lang) {
   if (ready && serverProcess && !serverProcess.killed) return;
 
   if (restartCount >= MAX_RESTARTS) {
+    // Schedule a reset so the server can be retried after a cooldown
+    if (!restartCountResetTimer) {
+      restartCountResetTimer = setTimeout(() => {
+        console.log("[whisper-server] Restart counter reset after cooldown");
+        restartCount = 0;
+        restartCountResetTimer = null;
+      }, RESTART_COUNT_DECAY_MS);
+    }
     throw new Error(
-      `Whisper server failed after ${MAX_RESTARTS} restart attempts`,
+      `Whisper server failed after ${MAX_RESTARTS} restart attempts — will retry after ${RESTART_COUNT_DECAY_MS / 1000}s`,
     );
   }
 

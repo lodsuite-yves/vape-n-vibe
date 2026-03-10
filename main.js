@@ -60,7 +60,11 @@ app.whenReady().then(() => {
       if (recording) return;
       recording = true;
       console.log("[main] Recording started");
-      if (defaults.recording.muteWhileRecording) await muteSystem();
+      try {
+        if (defaults.recording.muteWhileRecording) await muteSystem();
+      } catch (err) {
+        console.error("[main] Mute failed:", err.message);
+      }
       sendToOverlay("viz-mode", "recording");
       const win = getWin();
       if (win) win.webContents.send("recording-toggle", true);
@@ -69,7 +73,11 @@ app.whenReady().then(() => {
       if (!recording) return;
       recording = false;
       console.log("[main] Recording stopped");
-      if (defaults.recording.muteWhileRecording) await unmuteSystem();
+      try {
+        if (defaults.recording.muteWhileRecording) await unmuteSystem();
+      } catch (err) {
+        console.error("[main] Unmute failed:", err.message);
+      }
       const win = getWin();
       if (win) {
         win.webContents.send("recording-toggle", false);

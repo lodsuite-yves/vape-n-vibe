@@ -41,8 +41,9 @@ async function pasteText(text) {
     throw err;
   }
 
-  // Wait for the target app to read the clipboard before restoring
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  // Wait for the target app to read the clipboard before restoring.
+  // 500ms is safer — some apps (Slack, Teams, etc.) are slow to read.
+  await new Promise((resolve) => setTimeout(resolve, 500));
   clipboard.writeText(prev);
   console.log("[paste] Clipboard restored");
 }

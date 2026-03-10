@@ -205,10 +205,15 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Load count on startup
-  window.vapenvibe.getDictionary().then((words) => {
-    dictionaryWords = words || [];
-    updateDictionaryCount();
-  });
+  window.vapenvibe
+    .getDictionary()
+    .then((words) => {
+      dictionaryWords = words || [];
+      updateDictionaryCount();
+    })
+    .catch((err) => {
+      console.error("[renderer] Failed to load dictionary:", err);
+    });
 
   dictionaryBtn.addEventListener("click", async () => {
     dictionaryWords = (await window.vapenvibe.getDictionary()) || [];

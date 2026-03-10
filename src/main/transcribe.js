@@ -86,13 +86,31 @@ async function transcribe(wavPath, lang) {
   }
 }
 
+/**
+ * Whisper hallucination patterns — these appear when audio is
+ * silent, too short, or contains only background noise.
+ */
+const HALLUCINATION_RE =
+  /^\[.*\]$|^[\s.!?…*()]+$|^(thanks?(\s+you)?|thank you( for watching)?|bye|goodbye|you|\.+|,+|!+|\?+)$/i;
+
 function parseOutput(stdout) {
-  return stdout
+  const text = stdout
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0)
     .join(" ")
-    .replace(/^-\s*/, "");
+    .replace(/^-\s*/, "")
+    .replace(/\[.*?\]/g, "") // strip bracket tokens like [BLANK_AUDIO]
+    .replace(/\(.*?\)/g, "") // strip paren tokens like (music)
+    .trim();
+
+  // Reject common hallucinations
+  if (!text || HALLUCINATION_RE.test(text)) {
+    console.log("[transcribe] Filtered hallucination:", JSON.stringify(text));
+    return "";
+  }
+
+  return text;
 }
 
 module.exports = { transcribe, parseOutput };
