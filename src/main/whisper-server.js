@@ -67,17 +67,14 @@ async function startServer(lang) {
 
   const modelPath = defaults.model.path;
   if (!modelPath) {
-    console.warn("[whisper-server] No model path configured, skipping start");
-    return;
+    throw new Error("No whisper model path configured");
   }
 
   const fs = require("node:fs");
   if (!fs.existsSync(modelPath)) {
-    console.warn(
-      "[whisper-server] Model not found, skipping start:",
-      modelPath,
+    throw new Error(
+      `Whisper model not found at ${modelPath} — download it first`,
     );
-    return;
   }
 
   const port = await findFreePort();

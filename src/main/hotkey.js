@@ -225,6 +225,10 @@ let onKeyUp = null;
 function startUiohook() {
   if (uiohookStarted) return;
 
+  // Remove any stale listeners before adding new ones
+  if (onKeyDown) uIOhook.off("keydown", onKeyDown);
+  if (onKeyUp) uIOhook.off("keyup", onKeyUp);
+
   onKeyDown = (e) => {
     if (!callbacks || active) return;
     if (matchesDown(e)) {

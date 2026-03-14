@@ -23,10 +23,8 @@ async function getOutputMuted() {
 
 async function setOutputMuted(muted) {
   if (process.platform === "darwin") {
-    await execFileAsync("osascript", [
-      "-e",
-      `set volume output muted ${muted}`,
-    ]);
+    const flag = muted ? "true" : "false";
+    await execFileAsync("osascript", ["-e", `set volume output muted ${flag}`]);
   }
   // TODO: Windows/Linux support
 }

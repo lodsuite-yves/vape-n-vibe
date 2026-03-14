@@ -1,7 +1,4 @@
 window.addEventListener("DOMContentLoaded", async () => {
-  // --- Logo smoke effect ---
-  const smokeControl = initLogoSmoke();
-
   const config = await window.vapenvibe.getConfig();
 
   const shortcutEl = document.getElementById("shortcut");
@@ -606,7 +603,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   // --- Pause work when window is hidden ---
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-      smokeControl.pause();
       if (accessPoll) {
         clearInterval(accessPoll);
         accessPoll = null;
@@ -615,8 +611,6 @@ window.addEventListener("DOMContentLoaded", async () => {
         clearInterval(sePoll);
         sePoll = null;
       }
-    } else {
-      smokeControl.resume();
     }
   });
 
@@ -641,34 +635,3 @@ window.addEventListener("DOMContentLoaded", async () => {
     micSelect.innerHTML = '<option value="default">No mic access</option>';
   }
 });
-
-// --- Logo smoke effect (SVG turbulence animation) ---
-function initLogoSmoke() {
-  const turb = document.getElementById("smoke-turbulence");
-  let frame = 0;
-  const rad = Math.PI / 180;
-  let smokeRafId = null;
-
-  function animateTurbulence() {
-    frame += 0.15;
-    const bfx = 0.02 + 0.004 * Math.cos(frame * rad);
-    const bfy = 0.02 + 0.004 * Math.sin(frame * rad * 0.7);
-    turb.setAttribute("baseFrequency", `${bfx} ${bfy}`);
-    smokeRafId = requestAnimationFrame(animateTurbulence);
-  }
-  smokeRafId = requestAnimationFrame(animateTurbulence);
-
-  return {
-    pause() {
-      if (smokeRafId !== null) {
-        cancelAnimationFrame(smokeRafId);
-        smokeRafId = null;
-      }
-    },
-    resume() {
-      if (smokeRafId === null) {
-        smokeRafId = requestAnimationFrame(animateTurbulence);
-      }
-    },
-  };
-}
