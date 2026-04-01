@@ -60,29 +60,32 @@ app.whenReady().then(() => {
       if (recording) return;
       recording = true;
       console.log("[main] Recording started");
+      // Send IPC immediately — before any async work — so message
+      // ordering is guaranteed even on rapid taps.
+      sendToOverlay("viz-mode", "recording");
+      const win = getWin();
+      if (win) win.webContents.send("recording-toggle", true);
       try {
         if (defaults.recording.muteWhileRecording) await muteSystem();
       } catch (err) {
         console.error("[main] Mute failed:", err.message);
       }
-      sendToOverlay("viz-mode", "recording");
-      const win = getWin();
-      if (win) win.webContents.send("recording-toggle", true);
     },
     onUp: async () => {
       if (!recording) return;
       recording = false;
       console.log("[main] Recording stopped");
+      // Send IPC immediately — before any async work — so the renderer
+      // always receives stop after start, never reversed.
+      sendToOverlay("viz-mode", "idle");
+      const win = getWin();
+      if (win) {
+        win.webContents.send("recording-toggle", false);
+      }
       try {
         if (defaults.recording.muteWhileRecording) await unmuteSystem();
       } catch (err) {
         console.error("[main] Unmute failed:", err.message);
-      }
-      const win = getWin();
-      if (win) {
-        win.webContents.send("recording-toggle", false);
-      } else {
-        sendToOverlay("viz-mode", "idle");
       }
     },
   });

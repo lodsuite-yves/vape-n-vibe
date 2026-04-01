@@ -257,6 +257,35 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Tear down all recording resources (stream, nodes, intervals).
+  // Safe to call even if some resources are null.
+  async function teardownRecording() {
+    if (partialInterval) {
+      clearInterval(partialInterval);
+      partialInterval = null;
+    }
+    if (vizInterval) {
+      clearInterval(vizInterval);
+      vizInterval = null;
+    }
+    if (processor) {
+      processor.port.postMessage("stop");
+      processor.disconnect();
+      processor = null;
+    }
+    if (source) {
+      source.disconnect();
+      source = null;
+    }
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+    }
+    analyser = null;
+    freqData = null;
+    if (audioContext) await audioContext.suspend();
+  }
+
   async function startRecording() {
     if (isRecording) return;
     isRecording = true;
@@ -323,31 +352,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     isRecording = false;
     shortcutEl.classList.remove("recording");
 
-    if (partialInterval) {
-      clearInterval(partialInterval);
-      partialInterval = null;
-    }
-    if (vizInterval) {
-      clearInterval(vizInterval);
-      vizInterval = null;
-    }
-
-    if (processor) {
-      processor.port.postMessage("stop");
-      processor.disconnect();
-      processor = null;
-    }
-    if (source) {
-      source.disconnect();
-      source = null;
-    }
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      stream = null;
-    }
-    analyser = null;
-    freqData = null;
-    if (audioContext) await audioContext.suspend();
+    await teardownRecording();
 
     if (audioChunks.length === 0) return;
 
@@ -396,20 +401,30 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Serialize all start/stop operations through a promise chain.
+  // Without this, rapid taps fire multiple concurrent async callbacks
+  // whose shared state (isRecording, stream, processor…) interleaves
+  // unpredictably — e.g. startRecording₂ clobbers stopRecording₁'s
+  // cleanup, leaving resources permanently leaked.
+  let recordingOp = Promise.resolve();
+
   // Listen for push-to-talk from main process
-  window.vapenvibe.onRecordingToggle(async (on) => {
-    try {
-      if (on) {
-        await startRecording();
-      } else {
-        await stopRecording();
-      }
-    } catch (err) {
-      console.error("[renderer] Recording error:", err);
-      isRecording = false;
-      shortcutEl.classList.remove("recording");
-      window.vapenvibe.sendRecordingError();
-    }
+  window.vapenvibe.onRecordingToggle((on) => {
+    recordingOp = recordingOp
+      .then(async () => {
+        if (on) {
+          await startRecording();
+        } else {
+          await stopRecording();
+        }
+      })
+      .catch(async (err) => {
+        console.error("[renderer] Recording error:", err);
+        isRecording = false;
+        shortcutEl.classList.remove("recording");
+        await teardownRecording();
+        window.vapenvibe.sendRecordingError();
+      });
   });
 
   // Transcription status indicator
