@@ -419,7 +419,9 @@ window.addEventListener("DOMContentLoaded", async () => {
         }
       })
       .catch(async (err) => {
-        console.error("[renderer] Recording error:", err);
+        console.error(
+          `[renderer] Recording error: ${err.name}: ${err.message}`,
+        );
         isRecording = false;
         shortcutEl.classList.remove("recording");
         await teardownRecording();
@@ -560,6 +562,42 @@ window.addEventListener("DOMContentLoaded", async () => {
     return [...mods, ...parts].join("+");
   }
 
+  // --- Microphone permission (macOS only) ---
+  const micPermStatus = document.getElementById("mic-perm-status");
+  const grantMicBtn = document.getElementById("grant-mic-btn");
+  const micPermSetting = document.getElementById("mic-perm-setting");
+
+  function updateMicUI(granted) {
+    if (granted) {
+      micPermStatus.classList.remove("hidden");
+      grantMicBtn.classList.add("hidden");
+    } else {
+      micPermStatus.classList.add("hidden");
+      grantMicBtn.classList.remove("hidden");
+    }
+  }
+
+  if (config.platform !== "darwin") {
+    micPermSetting.classList.add("hidden");
+  } else {
+    updateMicUI(config.microphoneGranted);
+  }
+
+  let micPoll = null;
+  grantMicBtn.addEventListener("click", async () => {
+    grantMicBtn.textContent = "Waiting…";
+    await window.vapenvibe.requestMicrophone();
+    if (micPoll) clearInterval(micPoll);
+    micPoll = setInterval(async () => {
+      const granted = await window.vapenvibe.checkMicrophone();
+      if (granted) {
+        clearInterval(micPoll);
+        micPoll = null;
+        updateMicUI(true);
+      }
+    }, 2000);
+  });
+
   // --- Accessibility permission ---
   const accessStatus = document.getElementById("access-status");
   const grantAccessBtn = document.getElementById("grant-access-btn");
@@ -640,6 +678,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   // --- Pause work when window is hidden ---
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
+      if (micPoll) {
+        clearInterval(micPoll);
+        micPoll = null;
+      }
       if (accessPoll) {
         clearInterval(accessPoll);
         accessPoll = null;

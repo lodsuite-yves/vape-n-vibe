@@ -34,6 +34,11 @@ if (process.platform === "darwin") {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin") {
+    const { systemPreferences } = require("electron");
+    systemPreferences.askForMediaAccess("microphone").catch(() => {});
+  }
+
   defaults.resolveModelPaths();
 
   // Start whisper server if model exists (non-blocking)

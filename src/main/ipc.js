@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
-const { app, ipcMain, BrowserWindow } = require("electron");
+const { app, ipcMain, BrowserWindow, systemPreferences } = require("electron");
 const defaults = require("../config/defaults");
 const store = require("./store");
 const { downloadModels } = require("./download");
@@ -53,6 +53,9 @@ function registerIpcHandlers(windows) {
       hotkey: store.get("hotkey"),
       modelExists: fs.existsSync(defaults.model.path),
       accessibilityGranted: checkAccessibility(),
+      microphoneGranted:
+        process.platform !== "darwin" ||
+        systemPreferences.getMediaAccessStatus("microphone") === "granted",
       platform: process.platform,
       language: store.get("language"),
       version: app.getVersion(),
@@ -124,6 +127,18 @@ function registerIpcHandlers(windows) {
     } catch {
       return false;
     }
+  });
+
+  ipcMain.handle("check-microphone", (event) => {
+    if (!validateSender(event.senderFrame)) return false;
+    if (process.platform !== "darwin") return true;
+    return systemPreferences.getMediaAccessStatus("microphone") === "granted";
+  });
+
+  ipcMain.handle("request-microphone", async (event) => {
+    if (!validateSender(event.senderFrame)) return false;
+    if (process.platform !== "darwin") return true;
+    return systemPreferences.askForMediaAccess("microphone");
   });
 
   ipcMain.handle("check-for-updates", (event) => {

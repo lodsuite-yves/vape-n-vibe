@@ -47,6 +47,8 @@ contextBridge.exposeInMainWorld("vapenvibe", {
   restartApp: () => ipcRenderer.invoke("restart-app"),
   checkSystemEvents: () => ipcRenderer.invoke("check-system-events"),
   requestSystemEvents: () => ipcRenderer.invoke("request-system-events"),
+  checkMicrophone: () => ipcRenderer.invoke("check-microphone"),
+  requestMicrophone: () => ipcRenderer.invoke("request-microphone"),
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   downloadUpdate: () => ipcRenderer.invoke("download-update"),
   installUpdate: () => ipcRenderer.invoke("install-update"),
